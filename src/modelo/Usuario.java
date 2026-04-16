@@ -10,7 +10,7 @@ import java.io.Serializable;
  */
 // Serializable permite guardar objetos en archivos .ser
 public abstract class Usuario implements Serializable {
-
+    private static final long serialVersionUID = 1L;
     private String codigo;
     private String nombre;
     private String contrasena;
