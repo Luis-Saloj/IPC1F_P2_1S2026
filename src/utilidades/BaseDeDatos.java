@@ -8,14 +8,18 @@ import modelo.Instructor;
 import modelo.Estudiante;
 import modelo.Curso;
 import modelo.Seccion;
+import java.io.Serializable;
 /**
  *
  * @author salmn
  */
 
-public class BaseDeDatos {
+public class BaseDeDatos implements Serializable {
+    private static final long serialVersionUID = 1L;
+    // El campo "instancia" NO debe guardarse en el archivo
+    // "transient" le dice a Java que ignore ese campo al serializar
+    private static transient BaseDeDatos instancia;
      // La única instancia que existirá en todo el programa
-    private static BaseDeDatos instancia;
      // ---- Arreglos de usuarios ----
     private Instructor[] instructores;
     private Estudiante[] estudiantes;
