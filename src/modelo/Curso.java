@@ -9,6 +9,7 @@ import java.io.Serializable;
  * @author salmn
  */
 public class Curso implements Serializable{
+    private static final long serialVersionUID = 1L;
     private String codigo;
     private String nombre;
     private String descripcion;
