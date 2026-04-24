@@ -37,7 +37,9 @@ public class Curso implements Serializable{
     public String getDescripcion() {
         return descripcion;
     }
-    
+    public void setDescripcion(String descripcion) {
+    this.descripcion = descripcion;
+}
     public int getCreditos() {
         return creditos;
     }
