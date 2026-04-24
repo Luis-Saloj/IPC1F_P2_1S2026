@@ -1,2 +1,5 @@
 [23/04/2026 22:10:16] | DESCONOCIDO | salmon | LOGIN | FALLIDA | Credenciales incorrectas
 [23/04/2026 22:10:30] | ADMINISTRADOR | admin | LOGIN | EXITOSA | Inicio de sesión exitoso
+[23/04/2026 23:05:26] | DESCONOCIDO | admin | LOGIN | FALLIDA | Credenciales incorrectas
+[23/04/2026 23:05:30] | DESCONOCIDO | admin | LOGIN | FALLIDA | Credenciales incorrectas
+[23/04/2026 23:06:08] | ADMINISTRADOR | admin | LOGIN | EXITOSA | Inicio de sesión exitoso
