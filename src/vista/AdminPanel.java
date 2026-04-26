@@ -8,7 +8,7 @@ import modelo.Seccion;
 import utilidades.BaseDeDatos;
 import utilidades.Bitacora;
 import utilidades.serializador;
-
+import utilidades.HilosMonitor;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -17,7 +17,15 @@ public class AdminPanel extends JFrame {
 
     private BaseDeDatos bd = BaseDeDatos.getInstancia();
     private JTabbedPane pestanas;
+    // Hilos
+private HilosMonitor monitor;
 
+    // Labels del monitor
+    private JLabel lblMonitorInstructores;
+    private JLabel lblMonitorEstudiantes;
+    private JLabel lblMonitorCursos;
+    private JLabel lblMonitorSecciones;
+    private JLabel lblMonitorTiempo;
     // ---- Tablas ----
     private JTable tablaInstructores, tablaEstudiantes, tablaCursos, tablaSecciones;
     private DefaultTableModel modeloInstructores, modeloEstudiantes,
@@ -40,25 +48,35 @@ public class AdminPanel extends JFrame {
         pestanas.addTab("Cursos",       panelCursos());
         pestanas.addTab("Secciones",    panelSecciones());
         pestanas.addTab("Bitácora",     panelBitacora());
-
+        pestanas.addTab("Monitor", panelMonitor());
+        pestanas.addTab("Reportes PDF", panelReportes());
         // Botón cerrar sesión
         JButton btnCerrar = new JButton("Cerrar Sesión");
         btnCerrar.addActionListener(e -> {
-            serializador.guardar();
-            dispose();
-            new LoginForm().setVisible(true);
-        });
+        monitor.detener();
+        serializador.guardar();
+        dispose();
+        new LoginForm().setVisible(true);
+    });
 
         JPanel sur = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         sur.add(btnCerrar);
 
         add(pestanas, BorderLayout.CENTER);
         add(sur, BorderLayout.SOUTH);
+        // Inicia el monitor en tiempo real
+        monitor = new HilosMonitor((inst, est, cur, sec, tiempo) -> {
+            lblMonitorInstructores.setText(String.valueOf(inst));
+            lblMonitorEstudiantes.setText(String.valueOf(est));
+            lblMonitorCursos.setText(String.valueOf(cur));
+            lblMonitorSecciones.setText(String.valueOf(sec));
+            lblMonitorTiempo.setText(tiempo);
+        });
+        monitor.iniciar();
     }
 
-    // ================================================================
-    //  PESTAÑA INSTRUCTORES
-    // ================================================================
+    //PESTAÑA INSTRUCTORES
+
     private JPanel panelInstructores() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -106,7 +124,7 @@ public class AdminPanel extends JFrame {
         panel.add(scroll, BorderLayout.CENTER);
         panel.add(derecha, BorderLayout.EAST);
 
-        // Al seleccionar fila, llena el formulario
+// Al seleccionar fila, llena el formulario
         tablaInstructores.getSelectionModel().addListSelectionListener(e -> {
             int fila = tablaInstructores.getSelectedRow();
             if (fila >= 0) {
@@ -169,9 +187,7 @@ public class AdminPanel extends JFrame {
         return panel;
     }
 
-    // ================================================================
-    //  PESTAÑA ESTUDIANTES
-    // ================================================================
+//PESTAÑA ESTUDIANTES
     private JPanel panelEstudiantes() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -275,9 +291,7 @@ public class AdminPanel extends JFrame {
         return panel;
     }
 
-    // ================================================================
-    //  PESTAÑA CURSOS
-    // ================================================================
+//PESTAÑA CURSOS
     private JPanel panelCursos() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -379,9 +393,8 @@ public class AdminPanel extends JFrame {
         return panel;
     }
 
-    // ================================================================
-    //  PESTAÑA SECCIONES
-    // ================================================================
+    //PESTAÑA SECCIONES
+ 
     private JPanel panelSecciones() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -468,10 +481,8 @@ public class AdminPanel extends JFrame {
 
         return panel;
     }
+//PESTAÑA BITÁCORA
 
-    // ================================================================
-    //  PESTAÑA BITÁCORA
-    // ================================================================
     private JPanel panelBitacora() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -492,9 +503,7 @@ public class AdminPanel extends JFrame {
         return panel;
     }
 
-    // ================================================================
-    //  CARGA DE TABLAS
-    // ================================================================
+//CARGA DE TABLAS
     private void cargarTablas() {
         cargarTablaInstructores();
         cargarTablaEstudiantes();
@@ -530,7 +539,165 @@ public class AdminPanel extends JFrame {
             });
         }
     }
+private JPanel panelReportes() {
+    JPanel panel = new JPanel(new GridLayout(5, 1, 10, 10));
+    panel.setBorder(BorderFactory.createEmptyBorder(30, 100, 30, 100));
 
+    JLabel lblTitulo = new JLabel("Generación de Reportes PDF",
+            JLabel.CENTER);
+    lblTitulo.setFont(new Font("Arial", Font.BOLD, 16));
+
+    JButton btnInstructores = new JButton("Reporte de Instructores");
+    JButton btnEstudiantes  = new JButton("Reporte de Estudiantes");
+    JButton btnResumen      = new JButton("Resumen General");
+    JButton btnNotasSeccion = new JButton("Notas por Sección");
+
+    // Estilo común para botones
+    for (JButton btn : new JButton[]{btnInstructores, btnEstudiantes,
+                                      btnResumen, btnNotasSeccion}) {
+        btn.setBackground(new Color(34, 85, 34));
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Arial", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    btnInstructores.addActionListener(e -> {
+        String ruta = utilidades.GeneradorPDF.reporteInstructores();
+        mostrarRutaPDF(ruta);
+    });
+
+    btnEstudiantes.addActionListener(e -> {
+        String ruta = utilidades.GeneradorPDF.reporteEstudiantes();
+        mostrarRutaPDF(ruta);
+    });
+
+    btnResumen.addActionListener(e -> {
+        String ruta = utilidades.GeneradorPDF.reporteResumenGeneral();
+        mostrarRutaPDF(ruta);
+    });
+
+    btnNotasSeccion.addActionListener(e -> {
+        String cod = JOptionPane.showInputDialog(this,
+                "Ingresa el código de la sección:");
+        if (cod != null && !cod.trim().isEmpty()) {
+            String ruta = utilidades.GeneradorPDF
+                    .reporteNotasSeccion(cod.trim());
+            mostrarRutaPDF(ruta);
+        }
+    });
+
+    panel.add(lblTitulo);
+    panel.add(btnInstructores);
+    panel.add(btnEstudiantes);
+    panel.add(btnResumen);
+    panel.add(btnNotasSeccion);
+
+    return panel;
+}
+
+private void mostrarRutaPDF(String ruta) {
+    if (ruta != null) {
+        int resp = JOptionPane.showConfirmDialog(this,
+                "PDF generado en:\n" + ruta +
+                "\n\n¿Deseas abrirlo ahora?",
+                "PDF generado", JOptionPane.YES_NO_OPTION);
+        if (resp == JOptionPane.YES_OPTION) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .open(new java.io.File(ruta));
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this,
+                        "No se pudo abrir automáticamente.\n" +
+                        "Búscalo en la carpeta: reportes/");
+            }
+        }
+    } else {
+        JOptionPane.showMessageDialog(this,
+                "Error al generar el PDF.", "Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
+}
+private JPanel panelMonitor() {
+    JPanel panel = new JPanel(new GridBagLayout());
+    panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.insets = new Insets(10, 10, 10, 10);
+
+    JLabel lblTitulo = new JLabel("Monitor del Sistema en Tiempo Real");
+    lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
+    lblTitulo.setForeground(new Color(34, 85, 34));
+    gbc.gridx = 0; gbc.gridy = 0;
+    gbc.gridwidth = 2;
+    gbc.anchor = GridBagConstraints.CENTER;
+    panel.add(lblTitulo, gbc);
+
+    gbc.gridwidth = 1;
+    gbc.anchor = GridBagConstraints.WEST;
+
+    // Tiempo de sesión
+    gbc.gridx = 0; gbc.gridy = 1;
+    panel.add(etiquetaMonitor("Tiempo de sesión:"), gbc);
+    lblMonitorTiempo = valorMonitor("00:00:00");
+    gbc.gridx = 1;
+    panel.add(lblMonitorTiempo, gbc);
+
+    // Instructores
+    gbc.gridx = 0; gbc.gridy = 2;
+    panel.add(etiquetaMonitor("Instructores registrados:"), gbc);
+    lblMonitorInstructores = valorMonitor("0");
+    gbc.gridx = 1;
+    panel.add(lblMonitorInstructores, gbc);
+
+    // Estudiantes
+    gbc.gridx = 0; gbc.gridy = 3;
+    panel.add(etiquetaMonitor("Estudiantes registrados:"), gbc);
+    lblMonitorEstudiantes = valorMonitor("0");
+    gbc.gridx = 1;
+    panel.add(lblMonitorEstudiantes, gbc);
+
+    // Cursos
+    gbc.gridx = 0; gbc.gridy = 4;
+    panel.add(etiquetaMonitor("Cursos registrados:"), gbc);
+    lblMonitorCursos = valorMonitor("0");
+    gbc.gridx = 1;
+    panel.add(lblMonitorCursos, gbc);
+
+    // Secciones
+    gbc.gridx = 0; gbc.gridy = 5;
+    panel.add(etiquetaMonitor("Secciones activas:"), gbc);
+    lblMonitorSecciones = valorMonitor("0");
+    gbc.gridx = 1;
+    panel.add(lblMonitorSecciones, gbc);
+
+    // Nota informativa
+    JLabel lblNota = new JLabel(
+        "Los contadores se actualizan automáticamente cada segundo.");
+    lblNota.setFont(new Font("Arial", Font.ITALIC, 11));
+    lblNota.setForeground(Color.GRAY);
+    gbc.gridx = 0; gbc.gridy = 6;
+    gbc.gridwidth = 2;
+    gbc.anchor = GridBagConstraints.CENTER;
+    panel.add(lblNota, gbc);
+
+    return panel;
+}
+
+// Crea una etiqueta de título para el monitor
+private JLabel etiquetaMonitor(String texto) {
+    JLabel lbl = new JLabel(texto);
+    lbl.setFont(new Font("Arial", Font.BOLD, 14));
+    return lbl;
+}
+
+// Crea una etiqueta de valor grande para el monitor
+private JLabel valorMonitor(String valor) {
+    JLabel lbl = new JLabel(valor);
+    lbl.setFont(new Font("Arial", Font.BOLD, 28));
+    lbl.setForeground(new Color(34, 85, 34));
+    lbl.setPreferredSize(new Dimension(150, 40));
+    return lbl;
+}
     private void cargarTablaSecciones() {
         modeloSecciones.setRowCount(0);
         for (Seccion s : bd.getSecciones()) {
